@@ -74,19 +74,4 @@ class User extends Authenticatable
     {
         return $this->hasRole('staff');
     }
-
-    public function memberships(): HasMany
-    {
-        return $this->hasMany(UserMembership::class);
-    }
-
-    public function activeMembership()
-    {
-        return $this->memberships()->active()->first();
-    }
-
-    public function hasMembership(): bool
-    {
-        return $this->activeMembership() !== null;
-    }
 }
