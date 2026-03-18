@@ -1,0 +1,178 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Booking;
+use App\Models\Field;
+use App\Models\Branch;
+use Illuminate\Http\Request;
+use Carbon\Carbon;
+
+class BookingController extends Controller
+{
+    public function index(Request $request)
+    {
+        $user = auth()->user();
+        
+        $query = Booking::with(['field.branch', 'user']);
+        
+        // Filter berdasarkan role
+        if (!$user->isOwner()) {
+            $query->whereHas('field', function($q) use ($user) {
+                $q->where('branch_id', $user->branch_id);
+            });
+        }
+
+        // Filter berdasarkan parameter
+        if ($request->filled('date')) {
+            $query->whereDate('booking_date', $request->date);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('branch_id') && $user->isOwner()) {
+            $query->whereHas('field', function($q) use ($request) {
+                $q->where('branch_id', $request->branch_id);
+            });
+        }
+
+        $bookings = $query->latest()->paginate(15);
+        
+        $branches = $user->isOwner() ? Branch::all() : collect([$user->branch]);
+
+        return view('admin.bookings.index', compact('bookings', 'branches'));
+    }
+
+    public function create()
+    {
+        $user = auth()->user();
+        
+        if ($user->isOwner()) {
+            $fields = Field::with('branch')->active()->get();
+        } else {
+            $fields = Field::where('branch_id', $user->branch_id)->active()->get();
+        }
+
+        return view('admin.bookings.create', compact('fields'));
+    }
+
+    public function store(Request $request)
+    {
+        \Log::info('Booking store request:', $request->all());
+        
+        $request->validate([
+            'field_id' => 'required|exists:fields,id',
+            'customer_name' => 'required|string|max:255',
+            'customer_phone' => 'required|string|max:20',
+            'booking_date' => 'required|date|after_or_equal:today',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'notes' => 'nullable|string',
+        ]);
+
+        $field = Field::findOrFail($request->field_id);
+        
+        // Hitung total harga
+        $startTime = Carbon::parse($request->start_time);
+        $endTime = Carbon::parse($request->end_time);
+        $duration = $endTime->diffInHours($startTime);
+        $totalPrice = $duration * $field->price_per_hour;
+
+        $booking = Booking::create([
+            'field_id' => $request->field_id,
+            'user_id' => auth()->id(),
+            'customer_name' => $request->customer_name,
+            'customer_phone' => $request->customer_phone,
+            'booking_date' => $request->booking_date,
+            'start_time' => $request->start_time,
+            'end_time' => $request->end_time,
+            'total_price' => $totalPrice,
+            'status' => 'pending',
+            'notes' => $request->notes,
+        ]);
+
+        \Log::info('Booking created:', $booking->toArray());
+
+        return redirect()->route('admin.bookings.index')
+            ->with('success', 'Booking berhasil dibuat.');
+    }
+
+    public function show(Booking $booking)
+    {
+        $booking->load(['field.branch', 'user']);
+        return view('admin.bookings.show', compact('booking'));
+    }
+
+    public function edit(Booking $booking)
+    {
+        $user = auth()->user();
+        
+        if ($user->isOwner()) {
+            $fields = Field::with('branch')->active()->get();
+        } else {
+            $fields = Field::where('branch_id', $user->branch_id)->active()->get();
+        }
+
+        return view('admin.bookings.edit', compact('booking', 'fields'));
+    }
+
+    public function update(Request $request, Booking $booking)
+    {
+        $request->validate([
+            'field_id' => 'required|exists:fields,id',
+            'customer_name' => 'required|string|max:255',
+            'customer_phone' => 'required|string|max:20',
+            'booking_date' => 'required|date',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'status' => 'required|in:pending,ongoing,completed,cancelled',
+            'notes' => 'nullable|string',
+        ]);
+
+        $field = Field::findOrFail($request->field_id);
+        
+        // Validasi ketersediaan lapangan (exclude booking saat ini)
+        if (!$field->isAvailable($request->booking_date, $request->start_time, $request->end_time, $booking->id)) {
+            return back()->withErrors(['availability' => 'Lapangan tidak tersedia pada waktu tersebut.']);
+        }
+
+        // Hitung ulang total harga
+        $startTime = Carbon::parse($request->start_time);
+        $endTime = Carbon::parse($request->end_time);
+        $duration = $endTime->diffInHours($startTime);
+        $totalPrice = $duration * $field->price_per_hour;
+
+        $booking->update([
+            'field_id' => $request->field_id,
+            'customer_name' => $request->customer_name,
+            'customer_phone' => $request->customer_phone,
+            'booking_date' => $request->booking_date,
+            'start_time' => $request->start_time,
+            'end_time' => $request->end_time,
+            'total_price' => $totalPrice,
+            'status' => $request->status,
+            'notes' => $request->notes,
+        ]);
+
+        return redirect()->route('admin.bookings.index')
+            ->with('success', 'Booking berhasil diupdate.');
+    }
+
+    public function destroy(Booking $booking)
+    {
+        $user = auth()->user();
+        
+        // Staff tidak bisa menghapus booking
+        if ($user->isStaff()) {
+            return back()->withErrors(['permission' => 'Anda tidak memiliki izin untuk menghapus booking.']);
+        }
+
+        $booking->delete();
+
+        return redirect()->route('admin.bookings.index')
+            ->with('success', 'Booking berhasil dihapus.');
+    }
+}
