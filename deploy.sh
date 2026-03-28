@@ -33,7 +33,7 @@ echo "🗄️ MySQL is running on: your-vps-ip:3307"
 
 # Health check
 echo "🏥 Running health check..."
-if curl -f http://localhost:9777 > /dev/null 2>&1; then
+if curl -f http://localhost:8000 > /dev/null 2>&1; then
     echo "✅ Application is healthy!"
 else
     echo "❌ Application health check failed!"
