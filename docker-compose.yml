@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: booking-lapangan-app
+    restart: unless-stopped
+    ports:
+      - "9777:80"
+    volumes:
+      - ./storage:/var/www/storage
+      - ./public/storage:/var/www/public/storage
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=base64:your-app-key-here
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=booking_lapangan
+      - DB_USERNAME=booking_user
+      - DB_PASSWORD=BookingLap2024_!
+    depends_on:
+      - mysql
+    networks:
+      - booking-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: booking-lapangan-mysql
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_DATABASE=booking_lapangan
+      - MYSQL_USER=booking_user
+      - MYSQL_PASSWORD=BookingLap2024_!
+      - MYSQL_ROOT_PASSWORD=root_password_2024
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - booking-network
+
+networks:
+  booking-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  booking-storage:
