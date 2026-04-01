@@ -481,6 +481,14 @@
             </li>
             
             <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.member-schedules.*') ? 'active' : '' }}" 
+                   href="{{ route('admin.member-schedules.index') }}">
+                    <i class="bi bi-calendar-week me-2"></i>
+                    Jadwal Member
+                </a>
+            </li>
+            
+            <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}" 
                    href="{{ route('admin.transactions.index') }}">
                     <i class="bi bi-receipt me-2"></i>
@@ -547,6 +555,36 @@
                    href="{{ route('admin.users.index') }}">
                     <i class="bi bi-people me-2"></i>
                     Pengguna
+                </a>
+            </li>
+            @endcan
+            
+            @can('view branches')
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.membership-packages.*') ? 'active' : '' }}" 
+                   href="{{ route('admin.membership-packages.index') }}">
+                    <i class="bi bi-card-checklist me-2"></i>
+                    Paket Membership
+                </a>
+            </li>
+            @endcan
+            
+            @can('view branches')
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.user-memberships.*') ? 'active' : '' }}" 
+                   href="{{ route('admin.user-memberships.index') }}">
+                    <i class="bi bi-people-fill me-2"></i>
+                    Member Aktif
+                </a>
+            </li>
+            @endcan
+            
+            @can('view branches')
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.pricing-rules.*') ? 'active' : '' }}" 
+                   href="{{ route('admin.pricing-rules.index') }}">
+                    <i class="bi bi-currency-dollar me-2"></i>
+                    Aturan Harga
                 </a>
             </li>
             @endcan

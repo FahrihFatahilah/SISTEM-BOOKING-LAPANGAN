@@ -32,6 +32,14 @@ class BookingController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
+        
+        if ($request->filled('booking_type')) {
+            if ($request->booking_type === 'member') {
+                $query->where('is_membership', true);
+            } elseif ($request->booking_type === 'regular') {
+                $query->where('is_membership', false);
+            }
+        }
 
         if ($request->filled('branch_id') && $user->isOwner()) {
             $query->whereHas('field', function($q) use ($request) {
@@ -71,9 +79,36 @@ class BookingController extends Controller
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'notes' => 'nullable|string',
+            'booking_type' => 'required|in:regular,member',
         ]);
 
         $field = Field::findOrFail($request->field_id);
+        
+        // Validasi ketersediaan lapangan
+        if (!$field->isAvailable($request->booking_date, $request->start_time, $request->end_time)) {
+            return back()->withErrors(['availability' => 'Lapangan tidak tersedia pada waktu tersebut. Mungkin sudah ada booking reguler atau jadwal membership.'])->withInput();
+        }
+        
+        // Khusus untuk booking reguler, cek konflik dengan jadwal member
+        if ($request->booking_type === 'regular') {
+            $dayOfWeek = \Carbon\Carbon::parse($request->booking_date)->dayOfWeek;
+            $memberConflict = \App\Models\MemberSchedule::where('field_id', $request->field_id)
+                ->where('day_of_week', $dayOfWeek)
+                ->where('is_active', true)
+                ->where(function($q) use ($request) {
+                    $q->whereBetween('start_time', [$request->start_time, $request->end_time])
+                      ->orWhereBetween('end_time', [$request->start_time, $request->end_time])
+                      ->orWhere(function($q2) use ($request) {
+                          $q2->where('start_time', '<=', $request->start_time)
+                             ->where('end_time', '>=', $request->end_time);
+                      });
+                })
+                ->first();
+                
+            if ($memberConflict) {
+                return back()->withErrors(['availability' => "Waktu tersebut bentrok dengan jadwal member tetap: {$memberConflict->member_name} setiap {$memberConflict->day_name} ({$memberConflict->start_time} - {$memberConflict->end_time})"])->withInput();
+            }
+        }
         
         // Hitung total harga
         $startTime = Carbon::parse($request->start_time);
@@ -92,6 +127,8 @@ class BookingController extends Controller
             'total_price' => $totalPrice,
             'status' => 'pending',
             'notes' => $request->notes,
+            'is_membership' => $request->booking_type === 'member',
+            'booking_type' => $request->booking_type,
         ]);
 
         \Log::info('Booking created:', $booking->toArray());
@@ -130,13 +167,14 @@ class BookingController extends Controller
             'end_time' => 'required|date_format:H:i|after:start_time',
             'status' => 'required|in:pending,ongoing,completed,cancelled',
             'notes' => 'nullable|string',
+            'booking_type' => 'required|in:regular,member',
         ]);
 
         $field = Field::findOrFail($request->field_id);
         
         // Validasi ketersediaan lapangan (exclude booking saat ini)
         if (!$field->isAvailable($request->booking_date, $request->start_time, $request->end_time, $booking->id)) {
-            return back()->withErrors(['availability' => 'Lapangan tidak tersedia pada waktu tersebut.']);
+            return back()->withErrors(['availability' => 'Lapangan tidak tersedia pada waktu tersebut. Mungkin sudah ada booking reguler atau jadwal membership.'])->withInput();
         }
 
         // Hitung ulang total harga
@@ -155,6 +193,8 @@ class BookingController extends Controller
             'total_price' => $totalPrice,
             'status' => $request->status,
             'notes' => $request->notes,
+            'is_membership' => $request->booking_type === 'member',
+            'booking_type' => $request->booking_type,
         ]);
 
         return redirect()->route('admin.bookings.index')
@@ -174,5 +214,42 @@ class BookingController extends Controller
 
         return redirect()->route('admin.bookings.index')
             ->with('success', 'Booking berhasil dihapus.');
+    }
+
+    public function checkAvailability(Request $request)
+    {
+        $request->validate([
+            'field_id' => 'required|exists:fields,id',
+            'booking_date' => 'required|date',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'exclude_booking_id' => 'nullable|exists:bookings,id'
+        ]);
+
+        $field = Field::findOrFail($request->field_id);
+        $isAvailable = $field->isAvailable(
+            $request->booking_date,
+            $request->start_time,
+            $request->end_time,
+            $request->exclude_booking_id
+        );
+
+        $conflicts = [];
+        if (!$isAvailable) {
+            $conflicts = $field->getConflictingSchedules(
+                $request->booking_date,
+                $request->start_time,
+                $request->end_time,
+                $request->exclude_booking_id
+            );
+        }
+
+        return response()->json([
+            'available' => $isAvailable,
+            'conflicts' => $conflicts,
+            'message' => $isAvailable 
+                ? 'Lapangan tersedia' 
+                : 'Lapangan tidak tersedia pada waktu tersebut'
+        ]);
     }
 }

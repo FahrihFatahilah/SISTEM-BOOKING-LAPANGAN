@@ -37,8 +37,16 @@
                         <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
                     </select>
                 </div>
+                <div class="col-md-2">
+                    <label class="form-label">Tipe</label>
+                    <select class="form-select" name="booking_type">
+                        <option value="">Semua Tipe</option>
+                        <option value="regular" {{ request('booking_type') == 'regular' ? 'selected' : '' }}>Regular</option>
+                        <option value="member" {{ request('booking_type') == 'member' ? 'selected' : '' }}>Member</option>
+                    </select>
+                </div>
                 @if(auth()->user()->isOwner())
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label">Cabang</label>
                     <select class="form-select" name="branch_id">
                         <option value="">Semua Cabang</option>
@@ -73,6 +81,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>ID</th>
+                            <th>Tipe</th>
                             <th>Pelanggan</th>
                             <th>Lapangan</th>
                             <th>Cabang</th>
@@ -88,6 +97,13 @@
                         <tr>
                             <td>
                                 <span class="badge bg-light text-dark">#{{ $booking->id }}</span>
+                            </td>
+                            <td>
+                                @if($booking->is_membership)
+                                    <span class="badge bg-warning text-dark">👑 Member</span>
+                                @else
+                                    <span class="badge bg-primary">🎯 Regular</span>
+                                @endif
                             </td>
                             <td>
                                 <div>

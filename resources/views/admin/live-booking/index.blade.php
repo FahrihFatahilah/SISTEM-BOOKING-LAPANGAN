@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Live Booking')
+@section('title', 'Live Booking - Jadwal Seminggu')
 
 @section('content')
 <div class="row mb-4">
@@ -8,11 +8,11 @@
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h2 class="fw-bold text-dark">
-                    <i class="bi bi-broadcast text-danger me-2"></i>
-                    Live Booking Hari Ini
+                    <i class="bi bi-calendar-week text-primary me-2"></i>
+                    Jadwal Booking Seminggu
                     <span class="live-indicator ms-2"></span>
                 </h2>
-                <p class="text-muted">Monitoring booking real-time - {{ now()->format('d F Y') }}</p>
+                <p class="text-muted">{{ $startOfWeek->format('d M') }} - {{ $endOfWeek->format('d M Y') }}</p>
             </div>
             <div class="text-end">
                 <div class="badge bg-success fs-6 mb-2">
@@ -20,9 +20,8 @@
                     <span id="lastUpdated">{{ now()->format('H:i:s') }}</span>
                 </div>
                 <br>
-                <button class="btn btn-primary btn-sm" onclick="refreshData()">
+                <button class="btn btn-primary btn-sm" onclick="location.reload()">
                     <i class="bi bi-arrow-clockwise me-1"></i>
-                    <span id="loadingSpinner" class="spinner-border spinner-border-sm ms-1" style="display: none;"></span>
                     Refresh
                 </button>
             </div>
@@ -30,141 +29,195 @@
     </div>
 </div>
 
-<!-- Live Stats -->
-<div class="row g-3 mb-4">
+<!-- Weekly Schedule Calendar -->
+<div class="card">
+    <div class="card-header bg-transparent">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-calendar3 me-2"></i>
+            Kalender Booking Mingguan
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0" style="min-width: 1200px;">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 120px;">Lapangan</th>
+                        @foreach($schedule as $dayData)
+                        <th class="text-center" style="width: 150px;">
+                            <div class="fw-bold">{{ $dayData['day_name'] }}</div>
+                            <small class="text-muted">{{ $dayData['date']->format('d M') }}</small>
+                            @if($dayData['date']->isToday())
+                                <span class="badge bg-primary ms-1">Hari Ini</span>
+                            @endif
+                        </th>
+                        @endforeach
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($fields as $field)
+                    <tr>
+                        <td class="align-middle bg-light">
+                            <div class="fw-semibold">{{ $field->name }}</div>
+                            <small class="text-muted">{{ $field->branch->name }}</small>
+                        </td>
+                        @foreach($schedule as $dayKey => $dayData)
+                        <td class="p-2" style="vertical-align: top; min-height: 120px;">
+                            @if(isset($dayData['fields'][$field->id]['bookings']) && count($dayData['fields'][$field->id]['bookings']) > 0)
+                                @foreach($dayData['fields'][$field->id]['bookings'] as $booking)
+                                <div class="booking-slot mb-2 p-2 rounded" 
+                                     style="background: {{ $booking->is_membership ? '#fff3cd' : '#d1ecf1' }}; border-left: 4px solid {{ $booking->is_membership ? '#ffc107' : '#0dcaf0' }};">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="fw-semibold" style="font-size: 0.85rem;">
+                                                @if($booking->is_membership)
+                                                    👑 {{ $booking->customer_name }}
+                                                @else
+                                                    🎯 {{ $booking->customer_name }}
+                                                @endif
+                                            </div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">
+                                                {{ $booking->start_time }} - {{ $booking->end_time }}
+                                            </div>
+                                            <div class="mt-1">
+                                                @if($booking->status == 'pending')
+                                                    <span class="badge bg-warning text-dark" style="font-size: 0.7rem;">Pending</span>
+                                                @elseif($booking->status == 'ongoing')
+                                                    <span class="badge bg-success" style="font-size: 0.7rem;">Berjalan</span>
+                                                @elseif($booking->status == 'completed')
+                                                    <span class="badge bg-secondary" style="font-size: 0.7rem;">Selesai</span>
+                                                @else
+                                                    <span class="badge bg-danger" style="font-size: 0.7rem;">Batal</span>
+                                                @endif
+                                                
+                                                @if($booking->is_membership)
+                                                    <span class="badge bg-warning text-dark" style="font-size: 0.7rem;">Member</span>
+                                                @else
+                                                    <span class="badge bg-info" style="font-size: 0.7rem;">Regular</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endforeach
+                            @else
+                                <div class="text-center text-muted py-3" style="font-size: 0.8rem;">
+                                    <i class="bi bi-calendar-x"></i><br>
+                                    Kosong
+                                </div>
+                            @endif
+                        </td>
+                        @endforeach
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="row g-3 mt-4">
     <div class="col-md-3">
         <div class="card border-0 bg-primary text-white">
             <div class="card-body text-center">
                 <i class="bi bi-calendar-event fs-1 mb-2"></i>
-                <h4 class="mb-0" id="totalBookings">{{ $todayBookings->count() }}</h4>
-                <small>Total Booking</small>
+                <h4 class="mb-0">
+                    @php
+                        $totalBookings = 0;
+                        foreach($schedule as $dayData) {
+                            foreach($dayData['fields'] as $fieldData) {
+                                $totalBookings += count($fieldData['bookings']);
+                            }
+                        }
+                    @endphp
+                    {{ $totalBookings }}
+                </h4>
+                <small>Total Booking Minggu Ini</small>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card border-0 bg-warning text-white">
             <div class="card-body text-center">
-                <i class="bi bi-clock fs-1 mb-2"></i>
-                <h4 class="mb-0" id="pendingBookings">{{ $todayBookings->where('status', 'pending')->count() }}</h4>
-                <small>Akan Datang</small>
+                <i class="bi bi-crown fs-1 mb-2"></i>
+                <h4 class="mb-0">
+                    @php
+                        $memberBookings = 0;
+                        foreach($schedule as $dayData) {
+                            foreach($dayData['fields'] as $fieldData) {
+                                $memberBookings += collect($fieldData['bookings'])->where('is_membership', true)->count();
+                            }
+                        }
+                    @endphp
+                    {{ $memberBookings }}
+                </h4>
+                <small>Booking Member</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 bg-info text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-target fs-1 mb-2"></i>
+                <h4 class="mb-0">{{ $totalBookings - $memberBookings }}</h4>
+                <small>Booking Regular</small>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card border-0 bg-success text-white">
             <div class="card-body text-center">
-                <i class="bi bi-play-circle fs-1 mb-2"></i>
-                <h4 class="mb-0" id="ongoingBookings">{{ $todayBookings->where('status', 'ongoing')->count() }}</h4>
-                <small>Sedang Berjalan</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 bg-secondary text-white">
-            <div class="card-body text-center">
-                <i class="bi bi-check-circle fs-1 mb-2"></i>
-                <h4 class="mb-0" id="completedBookings">{{ $todayBookings->where('status', 'completed')->count() }}</h4>
-                <small>Selesai</small>
+                <i class="bi bi-cash fs-1 mb-2"></i>
+                <h4 class="mb-0">
+                    @php
+                        $totalRevenue = 0;
+                        foreach($schedule as $dayData) {
+                            foreach($dayData['fields'] as $fieldData) {
+                                foreach($fieldData['bookings'] as $booking) {
+                                    if (!$booking->is_membership) {
+                                        $totalRevenue += $booking->total_price;
+                                    }
+                                }
+                            }
+                        }
+                    @endphp
+                    Rp {{ number_format($totalRevenue, 0, ',', '.') }}
+                </h4>
+                <small>Revenue Regular</small>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Live Booking Table -->
-<div class="card">
-    <div class="card-header bg-transparent border-0">
-        <h5 class="card-title mb-0">
-            <i class="bi bi-list-ul me-2"></i>
-            Daftar Booking Hari Ini
-        </h5>
-    </div>
+<!-- Legend -->
+<div class="card mt-4">
     <div class="card-body">
-        @if($todayBookings->count() > 0)
-            <div class="table-responsive">
-                <table class="table table-hover" id="bookingTable">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Lapangan</th>
-                            <th>Cabang</th>
-                            <th>Pelanggan</th>
-                            <th>Waktu</th>
-                            <th>Status</th>
-                            <th>Sisa Waktu</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bookingTableBody">
-                        @foreach($todayBookings as $booking)
-                        <tr class="booking-row" data-id="{{ $booking->id }}">
-                            <td>
-                                <div class="fw-semibold">{{ $booking->field->name }}</div>
-                            </td>
-                            <td>
-                                <small class="text-muted">{{ $booking->field->branch->name }}</small>
-                            </td>
-                            <td>
-                                <div class="fw-semibold">{{ $booking->customer_name }}</div>
-                            </td>
-                            <td>
-                                <span class="badge bg-light text-dark">{{ $booking->start_time }} - {{ $booking->end_time }}</span>
-                            </td>
-                            <td>{!! $booking->status_badge !!}</td>
-                            <td>
-                                <small class="text-muted">-</small>
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary" onclick="openStatusModal({{ $booking->id }}, '{{ $booking->status }}')">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+        <h6 class="card-title">Keterangan:</h6>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="me-3" style="width: 20px; height: 20px; background: #fff3cd; border-left: 4px solid #ffc107;"></div>
+                    <span>👑 <strong>Member:</strong> Booking membership bulanan</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                    <div class="me-3" style="width: 20px; height: 20px; background: #d1ecf1; border-left: 4px solid #0dcaf0;"></div>
+                    <span>🎯 <strong>Regular:</strong> Booking harian</span>
+                </div>
             </div>
-        @else
-            <div class="text-center py-4">
-                <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
-                <p class="text-muted mt-3">Tidak ada booking hari ini</p>
-                <a href="{{ route('admin.bookings.create') }}" class="btn btn-primary">
-                    <i class="bi bi-plus-circle me-2"></i>
-                    Buat Booking Baru
-                </a>
-            </div>
-        @endif
-    </div>
-</div>
-
-<!-- Notification Container -->
-<div class="position-fixed top-0 end-0 p-3" style="z-index: 11">
-    <div id="notificationContainer"></div>
-</div>
-
-<!-- Status Update Modal -->
-<div class="modal fade" id="statusModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Update Status Booking</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="statusForm">
-                    <input type="hidden" id="bookingId">
-                    <div class="mb-3">
-                        <label class="form-label">Status Baru</label>
-                        <select class="form-select" id="newStatus" required>
-                            <option value="pending">🔵 Akan Datang</option>
-                            <option value="ongoing">🟢 Sedang Berjalan</option>
-                            <option value="completed">🔴 Selesai</option>
-                            <option value="cancelled">❌ Dibatalkan</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-primary" onclick="updateStatus()">Update Status</button>
+            <div class="col-md-6">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-warning text-dark me-2">Pending</span>
+                    <span>Menunggu dimulai</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-success me-2">Berjalan</span>
+                    <span>Sedang berlangsung</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-secondary me-2">Selesai</span>
+                    <span>Sudah selesai</span>
+                </div>
             </div>
         </div>
     </div>
@@ -187,185 +240,24 @@
     50% { opacity: 0.5; }
     100% { opacity: 1; }
 }
+
+.booking-slot {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.booking-slot:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.table td {
+    border-color: #dee2e6 !important;
+}
+
+.table th {
+    border-color: #dee2e6 !important;
+    background-color: #f8f9fa !important;
+}
 </style>
-@endpush
-
-@push('scripts')
-<script>
-let refreshInterval;
-let lastBookingData = [];
-
-document.addEventListener('DOMContentLoaded', function() {
-    startAutoRefresh();
-});
-
-function startAutoRefresh() {
-    refreshInterval = setInterval(refreshData, 10000);
-}
-
-function stopAutoRefresh() {
-    if (refreshInterval) {
-        clearInterval(refreshInterval);
-    }
-}
-
-function refreshData() {
-    document.getElementById('loadingSpinner').style.display = 'inline-block';
-    
-    fetch('{{ route("admin.live-booking.data") }}')
-        .then(response => response.json())
-        .then(data => {
-            updateBookingTable(data.bookings);
-            updateStats(data.bookings);
-            document.getElementById('lastUpdated').textContent = data.last_updated;
-            checkForNotifications(data.bookings);
-            document.getElementById('loadingSpinner').style.display = 'none';
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            document.getElementById('loadingSpinner').style.display = 'none';
-            showNotification('Error memuat data', 'danger');
-        });
-}
-
-function updateBookingTable(bookings) {
-    const tbody = document.getElementById('bookingTableBody');
-    
-    if (bookings.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center py-4">
-                    <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
-                    <p class="text-muted mt-3">Tidak ada booking hari ini</p>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    let html = '';
-    bookings.forEach(booking => {
-        html += `
-            <tr class="booking-row" data-id="${booking.id}">
-                <td><div class="fw-semibold">${booking.field_name}</div></td>
-                <td><small class="text-muted">${booking.branch_name}</small></td>
-                <td><div class="fw-semibold">${booking.customer_name}</div></td>
-                <td><span class="badge bg-light text-dark">${booking.start_time} - ${booking.end_time}</span></td>
-                <td>${booking.status_badge}</td>
-                <td><small class="text-muted">${booking.time_remaining}</small></td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="openStatusModal(${booking.id}, '${booking.status}')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-    
-    tbody.innerHTML = html;
-}
-
-function updateStats(bookings) {
-    const stats = {
-        total: bookings.length,
-        pending: bookings.filter(b => b.status === 'pending').length,
-        ongoing: bookings.filter(b => b.status === 'ongoing').length,
-        completed: bookings.filter(b => b.status === 'completed').length
-    };
-    
-    document.getElementById('totalBookings').textContent = stats.total;
-    document.getElementById('pendingBookings').textContent = stats.pending;
-    document.getElementById('ongoingBookings').textContent = stats.ongoing;
-    document.getElementById('completedBookings').textContent = stats.completed;
-}
-
-function checkForNotifications(currentBookings) {
-    const newlyCompleted = currentBookings.filter(current => {
-        const previous = lastBookingData.find(prev => prev.id === current.id);
-        return previous && previous.status !== 'completed' && current.status === 'completed';
-    });
-    
-    newlyCompleted.forEach(booking => {
-        showNotification(`Booking ${booking.field_name} telah selesai!`, 'success', `Pelanggan: ${booking.customer_name}`);
-    });
-    
-    lastBookingData = currentBookings;
-}
-
-function showNotification(message, type = 'info', subtitle = '') {
-    const container = document.getElementById('notificationContainer');
-    const id = 'notification-' + Date.now();
-    
-    const notification = document.createElement('div');
-    notification.id = id;
-    notification.className = `toast align-items-center text-white bg-${type} border-0`;
-    notification.setAttribute('role', 'alert');
-    
-    notification.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                <strong>${message}</strong>
-                ${subtitle ? `<br><small>${subtitle}</small>` : ''}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    `;
-    
-    container.appendChild(notification);
-    
-    const toast = new bootstrap.Toast(notification, {
-        autohide: true,
-        delay: 5000
-    });
-    
-    toast.show();
-    
-    notification.addEventListener('hidden.bs.toast', function() {
-        notification.remove();
-    });
-}
-
-function openStatusModal(bookingId, currentStatus) {
-    document.getElementById('bookingId').value = bookingId;
-    document.getElementById('newStatus').value = currentStatus;
-    
-    const modal = new bootstrap.Modal(document.getElementById('statusModal'));
-    modal.show();
-}
-
-function updateStatus() {
-    const bookingId = document.getElementById('bookingId').value;
-    const newStatus = document.getElementById('newStatus').value;
-    
-    if (!bookingId || !newStatus) {
-        showNotification('Data tidak lengkap', 'danger');
-        return;
-    }
-    
-    fetch(`{{ url('admin/live-booking') }}/${bookingId}/status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: JSON.stringify({
-            status: newStatus
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Status berhasil diupdate', 'success');
-            refreshData();
-            bootstrap.Modal.getInstance(document.getElementById('statusModal')).hide();
-        } else {
-            showNotification(data.message || 'Gagal mengupdate status', 'danger');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Terjadi kesalahan', 'danger');
-    });
-}
-</script>
 @endpush

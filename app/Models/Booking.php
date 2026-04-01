@@ -21,14 +21,17 @@ class Booking extends Model
         'end_time',
         'total_price',
         'status',
-        'notes'
+        'notes',
+        'is_membership',
+        'booking_type'
     ];
 
     protected $casts = [
         'booking_date' => 'date',
         'start_time' => 'datetime:H:i',
         'end_time' => 'datetime:H:i',
-        'total_price' => 'decimal:2'
+        'total_price' => 'decimal:2',
+        'is_membership' => 'boolean'
     ];
 
     public function field(): BelongsTo
@@ -63,11 +66,12 @@ class Booking extends Model
 
     public function getStatusBadgeAttribute()
     {
+        $typeIcon = $this->is_membership ? '👑' : '🎯';
         return match($this->status) {
-            'pending' => '<span class="badge bg-warning">🔵 Akan Datang</span>',
-            'ongoing' => '<span class="badge bg-success">🟢 Berjalan</span>',
-            'completed' => '<span class="badge bg-secondary">🔴 Selesai</span>',
-            'cancelled' => '<span class="badge bg-danger">❌ Dibatalkan</span>',
+            'pending' => '<span class="badge bg-warning">' . $typeIcon . ' 🔵 Akan Datang</span>',
+            'ongoing' => '<span class="badge bg-success">' . $typeIcon . ' 🟢 Berjalan</span>',
+            'completed' => '<span class="badge bg-secondary">' . $typeIcon . ' 🔴 Selesai</span>',
+            'cancelled' => '<span class="badge bg-danger">' . $typeIcon . ' ❌ Dibatalkan</span>',
             default => '<span class="badge bg-light">Unknown</span>'
         };
     }

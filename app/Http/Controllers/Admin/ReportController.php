@@ -57,9 +57,12 @@ class ReportController extends Controller
         
         $summary = [
             'total_bookings' => $bookings->count(),
+            'member_bookings' => $bookings->where('is_membership', true)->count(),
+            'regular_bookings' => $bookings->where('is_membership', false)->count(),
             'completed_bookings' => $bookings->where('status', 'completed')->count(),
             'cancelled_bookings' => $bookings->where('status', 'cancelled')->count(),
-            'total_revenue' => $bookings->where('status', 'completed')->sum('total_price'),
+            'total_revenue' => $bookings->where('status', 'completed')->where('is_membership', false)->sum('total_price'),
+            'member_revenue' => $bookings->where('status', 'completed')->where('is_membership', true)->count() * 0, // Member sudah bayar bulanan
         ];
 
         $branches = $user->isOwner() ? Branch::all() : collect([$user->branch]);
@@ -97,12 +100,22 @@ class ReportController extends Controller
         }
 
         if ($request->type === 'daily') {
-            $revenues = $query->selectRaw('DATE(booking_date) as date, SUM(total_price) as revenue, COUNT(*) as bookings')
+            $revenues = $query->selectRaw('DATE(booking_date) as date, 
+                SUM(CASE WHEN is_membership = 0 THEN total_price ELSE 0 END) as regular_revenue,
+                SUM(CASE WHEN is_membership = 1 THEN 1 ELSE 0 END) as member_sessions,
+                COUNT(*) as total_bookings,
+                SUM(CASE WHEN is_membership = 0 THEN 1 ELSE 0 END) as regular_bookings,
+                SUM(CASE WHEN is_membership = 1 THEN 1 ELSE 0 END) as member_bookings')
                 ->groupBy('date')
                 ->orderBy('date')
                 ->get();
         } else {
-            $revenues = $query->selectRaw('YEAR(booking_date) as year, MONTH(booking_date) as month, SUM(total_price) as revenue, COUNT(*) as bookings')
+            $revenues = $query->selectRaw('YEAR(booking_date) as year, MONTH(booking_date) as month, 
+                SUM(CASE WHEN is_membership = 0 THEN total_price ELSE 0 END) as regular_revenue,
+                SUM(CASE WHEN is_membership = 1 THEN 1 ELSE 0 END) as member_sessions,
+                COUNT(*) as total_bookings,
+                SUM(CASE WHEN is_membership = 0 THEN 1 ELSE 0 END) as regular_bookings,
+                SUM(CASE WHEN is_membership = 1 THEN 1 ELSE 0 END) as member_bookings')
                 ->groupBy('year', 'month')
                 ->orderBy('year')
                 ->orderBy('month')
@@ -137,8 +150,10 @@ class ReportController extends Controller
         
         $summary = [
             'total_bookings' => $bookings->count(),
+            'member_bookings' => $bookings->where('is_membership', true)->count(),
+            'regular_bookings' => $bookings->where('is_membership', false)->count(),
             'completed_bookings' => $bookings->where('status', 'completed')->count(),
-            'total_revenue' => $bookings->where('status', 'completed')->sum('total_price'),
+            'total_revenue' => $bookings->where('status', 'completed')->where('is_membership', false)->sum('total_price'),
         ];
 
         $pdf = Pdf::loadView('admin.reports.pdf.booking-report', compact('bookings', 'summary', 'request'));
@@ -178,13 +193,14 @@ class BookingExport implements \Maatwebsite\Excel\Concerns\FromCollection, \Maat
         return $query->get()->map(function ($booking) {
             return [
                 'Tanggal' => $booking->booking_date->format('d/m/Y'),
+                'Tipe' => $booking->is_membership ? 'Member' : 'Regular',
                 'Cabang' => $booking->field->branch->name,
                 'Lapangan' => $booking->field->name,
                 'Pelanggan' => $booking->customer_name,
                 'Telepon' => $booking->customer_phone,
                 'Jam Mulai' => $booking->start_time,
                 'Jam Selesai' => $booking->end_time,
-                'Total Harga' => $booking->total_price,
+                'Total Harga' => $booking->is_membership ? 'Bulanan' : $booking->total_price,
                 'Status' => ucfirst($booking->status),
                 'Dibuat Oleh' => $booking->user->name,
             ];
@@ -195,6 +211,7 @@ class BookingExport implements \Maatwebsite\Excel\Concerns\FromCollection, \Maat
     {
         return [
             'Tanggal',
+            'Tipe',
             'Cabang',
             'Lapangan',
             'Pelanggan',

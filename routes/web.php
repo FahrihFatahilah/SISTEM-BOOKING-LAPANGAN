@@ -43,6 +43,10 @@ Route::middleware(['auth', 'role:owner,admin,staff'])->prefix('admin')->name('ad
     Route::get('/pos/{sale}', [\App\Http\Controllers\Admin\POSController::class, 'show'])->name('pos.show');
     Route::get('/pos/print/{sale}', [\App\Http\Controllers\Admin\POSController::class, 'print'])->name('pos.print');
     
+    // Member Schedule Management
+    Route::resource('member-schedules', \App\Http\Controllers\Admin\MemberScheduleController::class);
+    Route::post('/member-schedules/{memberSchedule}/generate', [\App\Http\Controllers\Admin\MemberScheduleController::class, 'generateNext30Days'])->name('member-schedules.generate');
+    
     // Branch Management - Only Owner and Admin
     Route::middleware('role:owner,admin')->group(function () {
         Route::resource('branches', \App\Http\Controllers\Admin\BranchController::class);
@@ -50,6 +54,14 @@ Route::middleware(['auth', 'role:owner,admin,staff'])->prefix('admin')->name('ad
         Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
         Route::resource('transactions', \App\Http\Controllers\Admin\TransactionController::class);
         Route::resource('products', \App\Http\Controllers\Admin\ProductController::class);
+        
+        // Membership Management
+        Route::resource('membership-packages', \App\Http\Controllers\Admin\MembershipPackageController::class);
+        Route::resource('user-memberships', \App\Http\Controllers\Admin\UserMembershipController::class);
+        
+        // Pricing Rules
+        Route::resource('pricing-rules', \App\Http\Controllers\Admin\PricingRuleController::class);
+        Route::get('/pricing/get-price', [\App\Http\Controllers\Admin\PricingRuleController::class, 'getPrice'])->name('pricing.get-price');
     });
     
     // Settings - Only Owner and Admin
@@ -64,6 +76,8 @@ Route::middleware(['auth', 'role:owner,admin,staff'])->prefix('api')->name('api.
     Route::get('/fields/by-branch/{branch}', function($branchId) {
         return \App\Models\Field::where('branch_id', $branchId)->active()->get();
     })->name('fields.by-branch');
+    
+    Route::post('/booking/check-availability', [BookingController::class, 'checkAvailability'])->name('booking.check-availability');
     
     Route::get('/field-availability/{field}', function(\App\Models\Field $field, \Illuminate\Http\Request $request) {
         $available = $field->isAvailable(

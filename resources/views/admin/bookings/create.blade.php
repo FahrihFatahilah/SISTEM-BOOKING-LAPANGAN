@@ -67,6 +67,19 @@
                         </div>
                         
                         <div class="col-md-6">
+                            <label class="form-label">Tipe Booking <span class="text-danger">*</span></label>
+                            <select class="form-select @error('booking_type') is-invalid @enderror" 
+                                    name="booking_type" required>
+                                <option value="">Pilih Tipe Booking</option>
+                                <option value="regular" {{ old('booking_type') == 'regular' ? 'selected' : '' }}>Regular (Harian)</option>
+                                <option value="member" {{ old('booking_type') == 'member' ? 'selected' : '' }}>Member (Bulanan)</option>
+                            </select>
+                            @error('booking_type')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        
+                        <div class="col-md-6">
                             <label class="form-label">Lapangan <span class="text-danger">*</span></label>
                             <select class="form-select @error('field_id') is-invalid @enderror" 
                                     name="field_id" id="fieldSelect" required>
@@ -292,7 +305,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function checkAvailability(fieldId, date, start, end) {
         document.getElementById('availabilityCheck').style.display = 'block';
         
-        fetch(`/api/field-availability/${fieldId}?date=${date}&start_time=${start}&end_time=${end}`)
+        fetch('/api/booking/check-availability', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                field_id: fieldId,
+                booking_date: date,
+                start_time: start,
+                end_time: end
+            })
+        })
             .then(response => response.json())
             .then(data => {
                 document.getElementById('availabilityCheck').style.display = 'none';
@@ -306,12 +331,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     submitBtn.innerHTML = '<i class="bi bi-x-circle me-2"></i>Tidak Tersedia';
                     submitBtn.className = 'btn btn-danger';
                     
-                    document.getElementById('bookingSummary').innerHTML += `
-                        <div class="alert alert-danger mt-3">
-                            <i class="bi bi-exclamation-triangle me-2"></i>
-                            Lapangan tidak tersedia pada waktu tersebut
-                        </div>
-                    `;
+                    let conflictHtml = '<div class="alert alert-danger mt-3"><i class="bi bi-exclamation-triangle me-2"></i>Lapangan tidak tersedia pada waktu tersebut';
+                    
+                    if (data.conflicts && data.conflicts.length > 0) {
+                        conflictHtml += '<br><small class="mt-2 d-block"><strong>Bentrok dengan:</strong></small>';
+                        data.conflicts.forEach(conflict => {
+                            const badge = conflict.type === 'membership' ? 
+                                '<span class="badge bg-warning text-dark">Member</span>' : 
+                                '<span class="badge bg-info">Reguler</span>';
+                            conflictHtml += `<small class="d-block">${badge} ${conflict.customer} (${conflict.time})</small>`;
+                        });
+                    }
+                    
+                    conflictHtml += '</div>';
+                    
+                    document.getElementById('bookingSummary').innerHTML += conflictHtml;
                 }
             })
             .catch(error => {

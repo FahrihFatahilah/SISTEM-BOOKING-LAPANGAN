@@ -33,7 +33,7 @@
 
 <!-- Summary Cards -->
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card bg-primary text-white">
             <div class="card-body text-center">
                 <h3 class="mb-1">{{ $summary['total_bookings'] }}</h3>
@@ -41,7 +41,23 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <h3 class="mb-1">{{ $summary['member_bookings'] }}</h3>
+                <small>Member</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h3 class="mb-1">{{ $summary['regular_bookings'] }}</h3>
+                <small>Regular</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
         <div class="card bg-success text-white">
             <div class="card-body text-center">
                 <h3 class="mb-1">{{ $summary['completed_bookings'] }}</h3>
@@ -49,7 +65,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card bg-danger text-white">
             <div class="card-body text-center">
                 <h3 class="mb-1">{{ $summary['cancelled_bookings'] }}</h3>
@@ -57,11 +73,11 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card bg-info text-white">
+    <div class="col-md-2">
+        <div class="card bg-dark text-white">
             <div class="card-body text-center">
                 <h3 class="mb-1">Rp {{ number_format($summary['total_revenue'], 0, ',', '.') }}</h3>
-                <small>Total Pendapatan</small>
+                <small>Revenue Regular</small>
             </div>
         </div>
     </div>
@@ -76,6 +92,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>Tanggal</th>
+                            <th>Tipe</th>
                             <th>Pelanggan</th>
                             <th>Lapangan</th>
                             <th>Cabang</th>
@@ -90,6 +107,13 @@
                         <tr>
                             <td>{{ $booking->booking_date->format('d/m/Y') }}</td>
                             <td>
+                                @if($booking->is_membership)
+                                    <span class="badge bg-warning text-dark">👑 Member</span>
+                                @else
+                                    <span class="badge bg-info">🎯 Regular</span>
+                                @endif
+                            </td>
+                            <td>
                                 <div>
                                     <div class="fw-semibold">{{ $booking->customer_name }}</div>
                                     <small class="text-muted">{{ $booking->customer_phone }}</small>
@@ -98,7 +122,13 @@
                             <td>{{ $booking->field->name }}</td>
                             <td>{{ $booking->field->branch->name }}</td>
                             <td>{{ $booking->start_time }} - {{ $booking->end_time }}</td>
-                            <td>Rp {{ number_format($booking->total_price, 0, ',', '.') }}</td>
+                            <td>
+                                @if($booking->is_membership)
+                                    <span class="text-muted">Bulanan</span>
+                                @else
+                                    Rp {{ number_format($booking->total_price, 0, ',', '.') }}
+                                @endif
+                            </td>
                             <td>{!! $booking->status_badge !!}</td>
                             <td>{{ $booking->user->name }}</td>
                         </tr>

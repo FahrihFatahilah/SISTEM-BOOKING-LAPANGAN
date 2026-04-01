@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\Field;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -13,20 +14,58 @@ class LiveBookingController extends Controller
     {
         $user = auth()->user();
         
-        $query = Booking::with(['field.branch', 'user'])
-            ->whereDate('booking_date', today())
-            ->orderBy('start_time');
+        // Get current week (Monday to Sunday)
+        $startOfWeek = Carbon::now()->startOfWeek(); // Monday
+        $endOfWeek = Carbon::now()->endOfWeek(); // Sunday
         
-        // Filter berdasarkan role
+        // Get all fields based on user role
+        $fieldsQuery = Field::with('branch')->active();
         if (!$user->isOwner()) {
-            $query->whereHas('field', function($q) use ($user) {
+            $fieldsQuery->where('branch_id', $user->branch_id);
+        }
+        $fields = $fieldsQuery->get();
+        
+        // Get all bookings for this week
+        $bookingsQuery = Booking::with(['field.branch'])
+            ->whereBetween('booking_date', [$startOfWeek, $endOfWeek])
+            ->orderBy('booking_date')
+            ->orderBy('start_time');
+            
+        if (!$user->isOwner()) {
+            $bookingsQuery->whereHas('field', function($q) use ($user) {
                 $q->where('branch_id', $user->branch_id);
             });
         }
-
-        $todayBookings = $query->get();
         
-        return view('admin.live-booking.index', compact('todayBookings'));
+        $weekBookings = $bookingsQuery->get();
+        
+        // Organize bookings by day and field
+        $schedule = [];
+        for ($i = 0; $i < 7; $i++) {
+            $date = $startOfWeek->copy()->addDays($i);
+            $schedule[$date->format('Y-m-d')] = [
+                'date' => $date,
+                'day_name' => $date->locale('id')->dayName,
+                'fields' => []
+            ];
+            
+            foreach ($fields as $field) {
+                $schedule[$date->format('Y-m-d')]['fields'][$field->id] = [
+                    'field' => $field,
+                    'bookings' => []
+                ];
+            }
+        }
+        
+        // Fill bookings into schedule
+        foreach ($weekBookings as $booking) {
+            $dateKey = $booking->booking_date->format('Y-m-d');
+            if (isset($schedule[$dateKey]['fields'][$booking->field_id])) {
+                $schedule[$dateKey]['fields'][$booking->field_id]['bookings'][] = $booking;
+            }
+        }
+        
+        return view('admin.live-booking.index', compact('schedule', 'fields', 'startOfWeek', 'endOfWeek'));
     }
 
     public function getData()
@@ -60,6 +99,7 @@ class LiveBookingController extends Controller
                     'status' => $booking->status,
                     'status_badge' => $this->getStatusBadge($booking->status),
                     'time_remaining' => $this->getTimeRemaining($booking, $now),
+                    'is_membership' => $booking->is_membership,
                 ];
             });
 

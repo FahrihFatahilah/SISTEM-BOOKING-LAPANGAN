@@ -83,5 +83,11 @@ class RolePermissionSeeder extends Seeder
             'create bookings',
             'view live bookings',
         ]);
+        
+        // Customer role - for membership users
+        $customerRole = Role::create(['name' => 'customer']);
+        $customerRole->givePermissionTo([
+            'view bookings', // Only their own bookings
+        ]);
     }
 }
