@@ -50,9 +50,9 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <label class="form-label">Nomor Telepon <span class="text-danger">*</span></label>
+                            <label class="form-label">Nomor Telepon</label>
                             <input type="text" class="form-control @error('member_phone') is-invalid @enderror" 
-                                   name="member_phone" value="{{ old('member_phone') }}" required>
+                                   name="member_phone" value="{{ old('member_phone') }}">
                             @error('member_phone')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -171,11 +171,11 @@
             <div class="card-body">
                 <div class="alert alert-info">
                     <i class="bi bi-lightbulb me-2"></i>
-                    <strong>Sistem akan otomatis:</strong>
+                    <strong>Cara Kerja:</strong>
                     <ul class="mb-0 mt-2">
-                        <li>Generate booking untuk 30 hari ke depan</li>
-                        <li>Mencegah double booking</li>
-                        <li>Menandai sebagai booking member</li>
+                        <li>Saat simpan, sistem langsung generate 4 sesi booking mulai dari <strong>Tanggal Mulai</strong></li>
+                        <li>Setiap hari sistem otomatis generate sesi baru jika kuota belum penuh</li>
+                        <li>Maksimal 4 sesi per bulan per member</li>
                     </ul>
                 </div>
                 

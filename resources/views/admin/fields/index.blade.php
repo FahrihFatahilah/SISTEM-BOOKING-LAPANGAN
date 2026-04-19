@@ -48,6 +48,23 @@
                             @can('delete fields')
                             <li><hr class="dropdown-divider"></li>
                             <li>
+                                <form method="POST" action="{{ route('admin.fields.toggle', $field) }}" class="d-inline">
+                                    @csrf
+                                    @method('PATCH')
+                                    @if($field->is_active)
+                                        <button type="submit" class="dropdown-item text-warning"
+                                                onclick="return confirm('Yakin ingin menonaktifkan lapangan ini? Booking pending akan dibatalkan.')">
+                                            <i class="bi bi-pause-circle me-2"></i>Nonaktifkan
+                                        </button>
+                                    @else
+                                        <button type="submit" class="dropdown-item text-success">
+                                            <i class="bi bi-play-circle me-2"></i>Aktifkan
+                                        </button>
+                                    @endif
+                                </form>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
                                 <form method="POST" action="{{ route('admin.fields.destroy', $field) }}" class="d-inline">
                                     @csrf
                                     @method('DELETE')
@@ -76,9 +93,15 @@
                 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted">Harga per jam:</span>
+                        <span class="text-muted">Weekday/jam:</span>
                         <span class="fw-bold text-success">Rp {{ number_format($field->price_per_hour, 0, ',', '.') }}</span>
                     </div>
+                    @if($field->weekend_price_per_hour)
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <span class="text-muted">Weekend/jam:</span>
+                        <span class="fw-bold text-warning">Rp {{ number_format($field->weekend_price_per_hour, 0, ',', '.') }}</span>
+                    </div>
+                    @endif
                 </div>
                 
                 <div class="row text-center mt-4">

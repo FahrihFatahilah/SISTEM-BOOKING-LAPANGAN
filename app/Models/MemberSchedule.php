@@ -25,8 +25,6 @@ class MemberSchedule extends Model
 
     protected $casts = [
         'start_date' => 'date',
-        'start_time' => 'datetime:H:i',
-        'end_time' => 'datetime:H:i',
         'monthly_price' => 'decimal:2',
         'is_active' => 'boolean'
     ];
@@ -47,74 +45,115 @@ class MemberSchedule extends Model
         return $query->where('is_active', true);
     }
 
-    // Generate booking untuk 4 sesi dalam sebulan (bukan setiap minggu)
+    // Generate 4 sesi booking dari start_date (4 minggu berturut-turut)
     public function generateBookingsFor30Days($startDate = null)
     {
-        $startDate = $startDate ? Carbon::parse($startDate) : Carbon::now();
-        $endDate = $startDate->copy()->addDays(30);
-        
-        $bookings = [];
-        $current = $startDate->copy();
-        $sessionCount = 0;
-        $maxSessions = 4; // Batas 4 sesi per bulan
-        
-        while ($current <= $endDate && $sessionCount < $maxSessions) {
-            if ($current->dayOfWeek === $this->day_of_week && $current >= $this->start_date) {
-                // Cek apakah sudah ada booking di tanggal ini
-                $existingBooking = Booking::where('field_id', $this->field_id)
-                    ->where('booking_date', $current->format('Y-m-d'))
-                    ->where('start_time', $this->start_time)
-                    ->where('end_time', $this->end_time)
-                    ->where('is_membership', true)
-                    ->where('customer_name', $this->member_name)
-                    ->first();
-                
-                if (!$existingBooking) {
-                    $booking = Booking::create([
-                        'field_id' => $this->field_id,
-                        'user_id' => auth()->id() ?? 1,
-                        'customer_name' => $this->member_name,
-                        'customer_phone' => $this->member_phone,
-                        'booking_date' => $current->format('Y-m-d'),
-                        'start_time' => $this->start_time,
-                        'end_time' => $this->end_time,
-                        'total_price' => 0, // Member sudah bayar bulanan
-                        'status' => 'pending',
-                        'is_membership' => true,
-                        'booking_type' => 'member',
-                        'notes' => "Sesi member {$sessionCount + 1}/4 - Auto-generated"
-                    ]);
-                    
-                    $bookings[] = $booking;
-                    $sessionCount++;
-                }
-            }
-            $current->addDay();
-        }
-        
-        return $bookings;
-    }
+        $memberStart = Carbon::parse($this->start_date);
+        $maxSessions = 4;
+        $field = Field::find($this->field_id);
 
-    // Cek sisa kuota member untuk bulan ini
-    public function getRemainingQuota($month = null, $year = null)
-    {
-        $month = $month ?? now()->month;
-        $year = $year ?? now()->year;
-        
-        $usedQuota = Booking::where('field_id', $this->field_id)
+        // Jump langsung ke hari yang benar
+        $current = $memberStart->copy();
+        if ($current->dayOfWeek !== $this->day_of_week) {
+            $current->next($this->day_of_week);
+        }
+
+        // Generate 4 tanggal sekaligus
+        $dates = [];
+        for ($i = 0; $i < $maxSessions; $i++) {
+            $dates[] = $current->copy()->addWeeks($i)->format('Y-m-d');
+        }
+
+        // Cek existing sekali aja (1 query)
+        $existingDates = Booking::where('field_id', $this->field_id)
             ->where('customer_name', $this->member_name)
             ->where('is_membership', true)
-            ->whereMonth('booking_date', $month)
-            ->whereYear('booking_date', $year)
+            ->whereIn('booking_date', $dates)
+            ->pluck('booking_date')
+            ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
+            ->toArray();
+
+        // Bulk prepare
+        $toInsert = [];
+        $sessionNum = count($existingDates);
+        foreach ($dates as $date) {
+            if (!in_array($date, $existingDates)) {
+                $sessionNum++;
+                // Harga per sesi: pakai harga lapangan sesuai weekday/weekend
+                $pricePerSession = $field
+                    ? $field->getPriceForDate($date) * abs(Carbon::parse($this->end_time)->diffInHours(Carbon::parse($this->start_time)))
+                    : $this->monthly_price / $maxSessions;
+
+                $toInsert[] = [
+                    'field_id' => $this->field_id,
+                    'user_id' => auth()->id() ?? 1,
+                    'customer_name' => $this->member_name,
+                    'customer_phone' => $this->member_phone,
+                    'booking_date' => $date,
+                    'start_time' => $this->start_time,
+                    'end_time' => $this->end_time,
+                    'total_price' => $pricePerSession,
+                    'status' => 'pending',
+                    'is_membership' => true,
+                    'booking_type' => 'member',
+                    'notes' => "Sesi member {$sessionNum}/4",
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        if (!empty($toInsert)) {
+            Booking::insert($toInsert);
+        }
+
+        return Booking::where('field_id', $this->field_id)
+            ->where('customer_name', $this->member_name)
+            ->where('is_membership', true)
+            ->whereIn('booking_date', $dates)
+            ->get();
+    }
+
+    // Auto-complete sesi yang sudah lewat
+    public function autoCompletePastSessions()
+    {
+        return \App\Models\Booking::where('field_id', $this->field_id)
+            ->where('customer_name', $this->member_name)
+            ->where('is_membership', true)
+            ->where('status', 'pending')
+            ->where('booking_date', '<', now()->format('Y-m-d'))
+            ->update(['status' => 'completed']);
+    }
+
+    // Cek sisa kuota (4 sesi total)
+    public function getRemainingQuota($month = null, $year = null)
+    {
+        $used = Booking::where('field_id', $this->field_id)
+            ->where('customer_name', $this->member_name)
+            ->where('is_membership', true)
+            ->where('booking_date', '>=', Carbon::parse($this->start_date)->format('Y-m-d'))
             ->count();
-            
-        return 4 - $usedQuota;
+
+        return 4 - $used;
     }
     
-    // Cek apakah member masih bisa booking di bulan ini
+    // Cek apakah member masih bisa booking
     public function canBookThisMonth($month = null, $year = null)
     {
-        return $this->getRemainingQuota($month, $year) > 0;
+        return $this->getRemainingQuota() > 0;
+    }
+    
+    // Get tanggal sesi terakhir
+    public function getEndDateAttribute()
+    {
+        $last = Booking::where('field_id', $this->field_id)
+            ->where('customer_name', $this->member_name)
+            ->where('is_membership', true)
+            ->where('booking_date', '>=', Carbon::parse($this->start_date)->format('Y-m-d'))
+            ->orderBy('booking_date', 'desc')
+            ->first();
+
+        return $last ? $last->booking_date : Carbon::parse($this->start_date);
     }
     
     // Get booking history untuk member ini

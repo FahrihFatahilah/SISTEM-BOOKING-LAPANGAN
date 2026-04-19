@@ -50,9 +50,9 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <label class="form-label">Nomor Telepon <span class="text-danger">*</span></label>
+                            <label class="form-label">Nomor Telepon</label>
                             <input type="text" class="form-control @error('customer_phone') is-invalid @enderror" 
-                                   name="customer_phone" value="{{ old('customer_phone') }}" required>
+                                   name="customer_phone" value="{{ old('customer_phone') }}">
                             @error('customer_phone')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -87,6 +87,7 @@
                                 @foreach($fields as $field)
                                     <option value="{{ $field->id }}" 
                                             data-price="{{ $field->price_per_hour }}"
+                                            data-weekend-price="{{ $field->weekend_price_per_hour ?? $field->price_per_hour }}"
                                             data-branch="{{ $field->branch->name }}"
                                             {{ old('field_id') == $field->id ? 'selected' : '' }}>
                                         {{ $field->name }} - {{ $field->branch->name }} 
@@ -218,9 +219,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const selectedOption = fieldSelect.options[fieldSelect.selectedIndex];
-        const price = parseFloat(selectedOption.dataset.price);
+        const weekdayPrice = parseFloat(selectedOption.dataset.price);
+        const weekendPrice = parseFloat(selectedOption.dataset.weekendPrice);
         const branchName = selectedOption.dataset.branch;
         const fieldName = selectedOption.text.split(' - ')[0];
+        
+        // Deteksi weekend (0=Minggu, 6=Sabtu)
+        const bookingDay = new Date(date).getDay();
+        const isWeekend = (bookingDay === 0 || bookingDay === 6);
+        const price = isWeekend ? weekendPrice : weekdayPrice;
+        const dayLabel = isWeekend ? 'Weekend' : 'Weekday';
+        const dayBadge = isWeekend 
+            ? '<span class="badge bg-warning text-dark">Weekend</span>' 
+            : '<span class="badge bg-info">Weekday</span>';
         
         // Calculate duration and total price
         const startDate = new Date(`2000-01-01 ${start}`);
@@ -256,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="col-12">
                     <div class="d-flex justify-content-between">
                         <span class="text-muted">Tanggal:</span>
-                        <span>${new Date(date).toLocaleDateString('id-ID')}</span>
+                        <span>${new Date(date).toLocaleDateString('id-ID')} ${dayBadge}</span>
                     </div>
                 </div>
                 <div class="col-12">
@@ -273,8 +284,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="col-12">
                     <div class="d-flex justify-content-between">
-                        <span class="text-muted">Harga/jam:</span>
-                        <span>Rp ${price.toLocaleString('id-ID')}</span>
+                        <span class="text-muted">Harga/jam (${dayLabel}):</span>
+                        <span class="${isWeekend ? 'text-warning' : 'text-success'}">Rp ${price.toLocaleString('id-ID')}</span>
                     </div>
                 </div>
                 <hr>
@@ -291,9 +302,13 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('fieldInfo').style.display = 'block';
         document.getElementById('fieldDetails').innerHTML = `
             <div class="row g-2">
-                <div class="col-12">
-                    <small class="text-muted">Harga per jam:</small>
-                    <div class="fw-semibold text-success">Rp ${price.toLocaleString('id-ID')}</div>
+                <div class="col-6">
+                    <small class="text-muted">Weekday/jam:</small>
+                    <div class="fw-semibold text-success">Rp ${weekdayPrice.toLocaleString('id-ID')}</div>
+                </div>
+                <div class="col-6">
+                    <small class="text-muted">Weekend/jam:</small>
+                    <div class="fw-semibold text-warning">Rp ${weekendPrice.toLocaleString('id-ID')}</div>
                 </div>
             </div>
         `;

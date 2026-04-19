@@ -18,10 +18,10 @@
 <div class="row g-4 mb-4">
     <div class="col-xl-3 col-md-6">
         <div class="card border-0 bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-            <div class="card-body text-white">
+            <div class="card-body text-black">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title text-white-50 mb-1">Booking Hari Ini</h6>
+                        <h6 class="card-title text-black-50 mb-1">Booking Hari Ini</h6>
                         <h3 class="mb-0 fw-bold">{{ $stats['total_bookings_today'] }}</h3>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-circle p-3">
@@ -34,10 +34,10 @@
     
     <div class="col-xl-3 col-md-6">
         <div class="card border-0 bg-gradient" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-            <div class="card-body text-white">
+            <div class="card-body text-black">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title text-white-50 mb-1">Sedang Berjalan</h6>
+                        <h6 class="card-title text-black-50 mb-1">Sedang Berjalan</h6>
                         <h3 class="mb-0 fw-bold">{{ $stats['ongoing_bookings'] }}</h3>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-circle p-3">
@@ -50,10 +50,10 @@
     
     <div class="col-xl-3 col-md-6">
         <div class="card border-0 bg-gradient" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-            <div class="card-body text-white">
+            <div class="card-body text-black">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title text-white-50 mb-1">Selesai Hari Ini</h6>
+                        <h6 class="card-title text-black-50 mb-1">Selesai Hari Ini</h6>
                         <h3 class="mb-0 fw-bold">{{ $stats['completed_bookings_today'] }}</h3>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-circle p-3">
@@ -66,10 +66,10 @@
     
     <div class="col-xl-3 col-md-6">
         <div class="card border-0 bg-gradient" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
-            <div class="card-body text-white">
+            <div class="card-body text-black">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title text-white-50 mb-1">Pendapatan Hari Ini</h6>
+                        <h6 class="card-title text-black-50 mb-1">Pendapatan Hari Ini</h6>
                         <h3 class="mb-0 fw-bold">Rp {{ number_format($stats['total_revenue_today'], 0, ',', '.') }}</h3>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-circle p-3">

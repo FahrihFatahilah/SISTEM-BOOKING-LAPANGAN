@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\Branch;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use Illuminate\Http\Request;
@@ -11,18 +12,25 @@ use Illuminate\Support\Facades\DB;
 
 class POSController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
-        
+        $branches = null;
+        $selectedBranch = null;
+
+        if ($user->hasRole(['owner', 'admin'])) {
+            $branches = Branch::active()->get();
+            $selectedBranch = $request->branch_id ?? $branches->first()?->id;
+        } else {
+            $selectedBranch = $user->branch_id;
+        }
+
         $products = Product::active()
-            ->when(!$user->hasRole(['owner', 'admin']), function($query) use ($user) {
-                return $query->where('branch_id', $user->branch_id);
-            })
-            ->where('stock', '>', 0)
+            ->where('branch_id', $selectedBranch)
+            ->where('display_stock', '>', 0)
             ->get();
             
-        return view('admin.pos.index', compact('products'));
+        return view('admin.pos.index', compact('products', 'branches', 'selectedBranch'));
     }
 
     public function store(Request $request)
@@ -62,8 +70,8 @@ class POSController extends Controller
             foreach ($validated['items'] as $item) {
                 $product = Product::findOrFail($item['product_id']);
                 
-                if ($product->stock < $item['quantity']) {
-                    throw new \Exception("Stok {$product->name} tidak mencukupi");
+                if ($product->display_stock < $item['quantity']) {
+                    throw new \Exception("Stok display {$product->name} tidak mencukupi (tersedia: {$product->display_stock})");
                 }
 
                 SaleItem::create([

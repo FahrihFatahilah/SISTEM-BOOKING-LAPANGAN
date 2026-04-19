@@ -74,7 +74,7 @@ class BookingController extends Controller
         $request->validate([
             'field_id' => 'required|exists:fields,id',
             'customer_name' => 'required|string|max:255',
-            'customer_phone' => 'required|string|max:20',
+            'customer_phone' => 'nullable|string|max:20',
             'booking_date' => 'required|date|after_or_equal:today',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
@@ -110,11 +110,12 @@ class BookingController extends Controller
             }
         }
         
-        // Hitung total harga
+        // Hitung total harga berdasarkan weekday/weekend
         $startTime = Carbon::parse($request->start_time);
         $endTime = Carbon::parse($request->end_time);
-        $duration = $endTime->diffInHours($startTime);
-        $totalPrice = $duration * $field->price_per_hour;
+        $duration = abs($endTime->diffInHours($startTime));
+        if ($duration == 0) $duration = 1;
+        $totalPrice = $duration * $field->getPriceForDate($request->booking_date);
 
         $booking = Booking::create([
             'field_id' => $request->field_id,
@@ -161,7 +162,7 @@ class BookingController extends Controller
         $request->validate([
             'field_id' => 'required|exists:fields,id',
             'customer_name' => 'required|string|max:255',
-            'customer_phone' => 'required|string|max:20',
+            'customer_phone' => 'nullable|string|max:20',
             'booking_date' => 'required|date',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
@@ -177,11 +178,12 @@ class BookingController extends Controller
             return back()->withErrors(['availability' => 'Lapangan tidak tersedia pada waktu tersebut. Mungkin sudah ada booking reguler atau jadwal membership.'])->withInput();
         }
 
-        // Hitung ulang total harga
+        // Hitung ulang total harga berdasarkan weekday/weekend
         $startTime = Carbon::parse($request->start_time);
         $endTime = Carbon::parse($request->end_time);
-        $duration = $endTime->diffInHours($startTime);
-        $totalPrice = $duration * $field->price_per_hour;
+        $duration = abs($endTime->diffInHours($startTime));
+        if ($duration == 0) $duration = 1;
+        $totalPrice = $duration * $field->getPriceForDate($request->booking_date);
 
         $booking->update([
             'field_id' => $request->field_id,

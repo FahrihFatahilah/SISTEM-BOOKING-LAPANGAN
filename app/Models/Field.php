@@ -16,13 +16,25 @@ class Field extends Model
         'name',
         'description',
         'price_per_hour',
+        'weekend_price_per_hour',
         'is_active'
     ];
 
     protected $casts = [
         'price_per_hour' => 'decimal:2',
+        'weekend_price_per_hour' => 'decimal:2',
         'is_active' => 'boolean'
     ];
+
+    public function getPriceForDate($date): float
+    {
+        $dayOfWeek = \Carbon\Carbon::parse($date)->dayOfWeek;
+        // 0 = Minggu, 6 = Sabtu
+        if (in_array($dayOfWeek, [0, 6]) && $this->weekend_price_per_hour) {
+            return (float) $this->weekend_price_per_hour;
+        }
+        return (float) $this->price_per_hour;
+    }
 
     public function branch(): BelongsTo
     {

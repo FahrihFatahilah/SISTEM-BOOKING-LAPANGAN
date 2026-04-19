@@ -32,13 +32,22 @@
                             <i class="bi bi-clock-history"></i> Riwayat
                         </a>
                     </div>
+                    @if($branches)
+                    <div class="mt-2">
+                        <select id="branchSelect" class="form-select form-select-sm" onchange="window.location='{{ route('admin.pos.index') }}?branch_id='+this.value">
+                            @foreach($branches as $branch)
+                                <option value="{{ $branch->id }}" {{ $selectedBranch == $branch->id ? 'selected' : '' }}>{{ $branch->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
                     <input type="text" id="searchProduct" class="form-control mt-2" placeholder="Cari produk...">
                 </div>
                 <div class="card-body" style="max-height: 600px; overflow-y: auto;">
                     <div class="row" id="productList">
                         @foreach($products as $product)
                         <div class="col-md-3 mb-3 product-item" data-name="{{ strtolower($product->name) }}">
-                            <div class="card h-100 product-card" onclick="addToCart({{ $product->id }}, '{{ $product->name }}', {{ $product->selling_price }}, {{ $product->stock }})" style="cursor: pointer; transition: all 0.3s;">
+                            <div class="card h-100 product-card" onclick="addToCart({{ $product->id }}, '{{ $product->name }}', {{ $product->selling_price }}, {{ $product->display_stock }})" style="cursor: pointer; transition: all 0.3s;">
                                 <div class="card-body text-center">
                                     <div class="mb-2">
                                         <i class="bi bi-box-seam" style="font-size: 2rem; color: #6c757d;"></i>
@@ -46,7 +55,7 @@
                                     <h6 class="mb-1">{{ $product->name }}</h6>
                                     <p class="text-muted mb-1" style="font-size: 0.85rem;">{{ $product->code }}</p>
                                     <p class="text-success fw-bold mb-1">Rp {{ number_format($product->selling_price, 0, ',', '.') }}</p>
-                                    <small class="badge {{ $product->stock <= $product->min_stock ? 'bg-warning' : 'bg-secondary' }}">Stok: {{ $product->stock }}</small>
+                                    <small class="badge {{ $product->display_stock <= $product->min_stock ? 'bg-warning' : 'bg-secondary' }}">Stok: {{ $product->display_stock }}</small>
                                 </div>
                             </div>
                         </div>

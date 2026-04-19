@@ -35,9 +35,14 @@
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label>Stok</label>
-                            <input type="number" name="stock" class="form-control @error('stock') is-invalid @enderror" value="{{ old('stock', $product->stock) }}" required>
-                            @error('stock')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <label>Stok Gudang</label>
+                            <input type="number" name="warehouse_stock" class="form-control @error('warehouse_stock') is-invalid @enderror" value="{{ old('warehouse_stock', $product->warehouse_stock) }}" required>
+                            @error('warehouse_stock')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="mb-3">
+                            <label>Stok Display</label>
+                            <input type="number" name="display_stock" class="form-control" value="{{ $product->display_stock }}" readonly>
+                            <small class="text-muted">Stok display diisi melalui pemindahan stok</small>
                         </div>
                         <div class="mb-3">
                             <label>Minimal Stok</label>

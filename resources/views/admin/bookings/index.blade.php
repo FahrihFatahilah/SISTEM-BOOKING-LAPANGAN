@@ -122,7 +122,10 @@
                                 <span class="badge bg-info">{{ $booking->start_time }} - {{ $booking->end_time }}</span>
                             </td>
                             <td>
-                                <span class="fw-semibold text-success">Rp {{ number_format($booking->total_price, 0, ',', '.') }}</span>
+                                <span class="fw-semibold {{ $booking->is_membership ? 'text-warning' : 'text-success' }}">Rp {{ number_format($booking->total_price, 0, ',', '.') }}</span>
+                                @if($booking->is_membership)
+                                    <br><small class="text-muted">per sesi</small>
+                                @endif
                             </td>
                             <td>{!! $booking->status_badge !!}</td>
                             <td>

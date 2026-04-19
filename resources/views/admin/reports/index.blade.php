@@ -33,8 +33,8 @@
             <div class="card-body text-white">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title text-white-50 mb-1">Pendapatan Bulan Ini</h6>
-                        <h3 class="mb-0 fw-bold">Rp {{ number_format(\App\Models\Booking::whereMonth('booking_date', now()->month)->where('status', 'completed')->where('is_membership', false)->sum('total_price'), 0, ',', '.') }}</h3>
+                        <h6 class="card-title text-white-50 mb-1">Pendapatan Booking</h6>
+                        <h3 class="mb-0 fw-bold">Rp {{ number_format(\App\Models\Booking::whereMonth('booking_date', now()->month)->whereIn('status', ['pending', 'ongoing', 'completed'])->sum('total_price'), 0, ',', '.') }}</h3>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-circle p-3">
                         <i class="bi bi-currency-dollar fs-4"></i>

@@ -448,7 +448,7 @@
     <!-- Sidebar -->
     <nav class="sidebar">
         <div class="p-4">
-            <h4 class="text-white mb-4">
+            <h4 class="text-black mb-4">
                 <i class="bi bi-calendar-check"></i>
                 Booking Lapangan
             </h4>
@@ -493,6 +493,14 @@
                    href="{{ route('admin.transactions.index') }}">
                     <i class="bi bi-receipt me-2"></i>
                     Pembukuan
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.stock-transfers.*') ? 'active' : '' }}" 
+                   href="{{ route('admin.stock-transfers.index') }}">
+                    <i class="bi bi-box-arrow-right me-2"></i>
+                    Stok Gudang/Display
                 </a>
             </li>
             
@@ -559,25 +567,7 @@
             </li>
             @endcan
             
-            @can('view branches')
-            <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('admin.membership-packages.*') ? 'active' : '' }}" 
-                   href="{{ route('admin.membership-packages.index') }}">
-                    <i class="bi bi-card-checklist me-2"></i>
-                    Paket Membership
-                </a>
-            </li>
-            @endcan
-            
-            @can('view branches')
-            <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('admin.user-memberships.*') ? 'active' : '' }}" 
-                   href="{{ route('admin.user-memberships.index') }}">
-                    <i class="bi bi-people-fill me-2"></i>
-                    Member Aktif
-                </a>
-            </li>
-            @endcan
+
             
             @can('view branches')
             <li class="nav-item">

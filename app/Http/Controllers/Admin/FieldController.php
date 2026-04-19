@@ -42,6 +42,7 @@ class FieldController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price_per_hour' => 'required|numeric|min:0',
+            'weekend_price_per_hour' => 'nullable|numeric|min:0',
         ]);
 
         Field::create($request->all());
@@ -52,11 +53,20 @@ class FieldController extends Controller
 
     public function show(Field $field)
     {
-        $field->load(['branch', 'bookings' => function($q) {
-            $q->latest()->take(10);
-        }]);
-        
-        return view('admin.fields.show', compact('field'));
+        $field->load('branch');
+
+        $bookings = $field->bookings()->latest('booking_date')->take(20)->get();
+        $memberSchedules = $field->memberSchedules()->get();
+
+        $todayBookings = $field->bookings()->whereDate('booking_date', today())->count();
+        $pendingBookings = $field->bookings()->where('status', 'pending')->where('booking_date', '>=', today())->count();
+        $completedThisMonth = $field->bookings()->where('status', 'completed')->whereMonth('booking_date', now()->month)->whereYear('booking_date', now()->year)->count();
+        $revenueThisMonth = $field->bookings()->where('status', 'completed')->whereMonth('booking_date', now()->month)->whereYear('booking_date', now()->year)->sum('total_price');
+
+        return view('admin.fields.show', compact(
+            'field', 'bookings', 'memberSchedules',
+            'todayBookings', 'pendingBookings', 'completedThisMonth', 'revenueThisMonth'
+        ));
     }
 
     public function edit(Field $field)
@@ -79,6 +89,7 @@ class FieldController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price_per_hour' => 'required|numeric|min:0',
+            'weekend_price_per_hour' => 'nullable|numeric|min:0',
             'is_active' => 'boolean',
         ]);
 
@@ -86,6 +97,22 @@ class FieldController extends Controller
 
         return redirect()->route('admin.fields.index')
             ->with('success', 'Lapangan berhasil diupdate.');
+    }
+
+    public function toggleActive(Field $field)
+    {
+        $field->update(['is_active' => !$field->is_active]);
+
+        if (!$field->is_active) {
+            // Batalkan booking pending yang belum berlangsung
+            $field->bookings()
+                ->where('status', 'pending')
+                ->where('booking_date', '>=', today())
+                ->update(['status' => 'cancelled']);
+        }
+
+        $status = $field->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        return back()->with('success', "Lapangan {$field->name} berhasil {$status}.");
     }
 
     public function destroy(Field $field)

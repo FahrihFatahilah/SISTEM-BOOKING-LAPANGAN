@@ -39,7 +39,7 @@
                         <div class="col-md-6">
                             <label class="form-label">Nomor Telepon</label>
                             <input type="text" class="form-control @error('customer_phone') is-invalid @enderror" 
-                                   name="customer_phone" value="{{ old('customer_phone', $booking->customer_phone) }}" required>
+                                   name="customer_phone" value="{{ old('customer_phone', $booking->customer_phone) }}">
                             @error('customer_phone')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -62,6 +62,7 @@
                                 @foreach($fields as $field)
                                     <option value="{{ $field->id }}" 
                                             data-price="{{ $field->price_per_hour }}"
+                                            data-weekend-price="{{ $field->weekend_price_per_hour ?? $field->price_per_hour }}"
                                             {{ $booking->field_id == $field->id ? 'selected' : '' }}>
                                         {{ $field->name }} - {{ $field->branch->name }}
                                     </option>

@@ -56,7 +56,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="price_per_hour" class="form-label">Harga per Jam</label>
+                                <label for="price_per_hour" class="form-label">Harga per Jam (Weekday)</label>
                                 <div class="input-group">
                                     <span class="input-group-text">Rp</span>
                                     <input type="number" class="form-control @error('price_per_hour') is-invalid @enderror" 
@@ -64,15 +64,34 @@
                                            value="{{ old('price_per_hour', $field->price_per_hour) }}" 
                                            min="0" step="1000" required>
                                 </div>
+                                <small class="text-muted">Senin - Jumat</small>
                                 @error('price_per_hour')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="weekend_price_per_hour" class="form-label">Harga per Jam (Weekend)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rp</span>
+                                    <input type="number" class="form-control @error('weekend_price_per_hour') is-invalid @enderror" 
+                                           id="weekend_price_per_hour" name="weekend_price_per_hour" 
+                                           value="{{ old('weekend_price_per_hour', $field->weekend_price_per_hour) }}" 
+                                           min="0" step="1000">
+                                </div>
+                                <small class="text-muted">Sabtu & Minggu (kosongkan jika sama dengan weekday)</small>
+                                @error('weekend_price_per_hour')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
                         
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <div class="form-check form-switch">
+                                    <input type="hidden" name="is_active" value="0">
                                     <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
                                            value="1" {{ old('is_active', $field->is_active) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="is_active">

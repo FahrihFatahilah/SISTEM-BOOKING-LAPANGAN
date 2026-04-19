@@ -46,14 +46,23 @@ Route::middleware(['auth', 'role:owner,admin,staff'])->prefix('admin')->name('ad
     // Member Schedule Management
     Route::resource('member-schedules', \App\Http\Controllers\Admin\MemberScheduleController::class);
     Route::post('/member-schedules/{memberSchedule}/generate', [\App\Http\Controllers\Admin\MemberScheduleController::class, 'generateNext30Days'])->name('member-schedules.generate');
+    Route::post('/member-schedules/{memberSchedule}/add-session', [\App\Http\Controllers\Admin\MemberScheduleController::class, 'addSession'])->name('member-schedules.add-session');
+    Route::post('/member-schedules/{memberSchedule}/remove-session', [\App\Http\Controllers\Admin\MemberScheduleController::class, 'removeSession'])->name('member-schedules.remove-session');
     
     // Branch Management - Only Owner and Admin
     Route::middleware('role:owner,admin')->group(function () {
         Route::resource('branches', \App\Http\Controllers\Admin\BranchController::class);
         Route::resource('fields', \App\Http\Controllers\Admin\FieldController::class);
+        Route::patch('/fields/{field}/toggle', [\App\Http\Controllers\Admin\FieldController::class, 'toggleActive'])->name('fields.toggle');
         Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
         Route::resource('transactions', \App\Http\Controllers\Admin\TransactionController::class);
         Route::resource('products', \App\Http\Controllers\Admin\ProductController::class);
+        
+        // Stock Transfer (Gudang -> Display)
+        Route::get('/stock-transfers', [\App\Http\Controllers\Admin\StockTransferController::class, 'index'])->name('stock-transfers.index');
+        Route::get('/stock-transfers/create', [\App\Http\Controllers\Admin\StockTransferController::class, 'create'])->name('stock-transfers.create');
+        Route::post('/stock-transfers', [\App\Http\Controllers\Admin\StockTransferController::class, 'store'])->name('stock-transfers.store');
+        Route::get('/stock-transfers/opname', [\App\Http\Controllers\Admin\StockTransferController::class, 'opname'])->name('stock-transfers.opname');
         
         // Membership Management
         Route::resource('membership-packages', \App\Http\Controllers\Admin\MembershipPackageController::class);
