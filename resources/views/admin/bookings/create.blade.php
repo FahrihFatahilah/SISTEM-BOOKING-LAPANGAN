@@ -72,7 +72,7 @@
                                     name="booking_type" required>
                                 <option value="">Pilih Tipe Booking</option>
                                 <option value="regular" {{ old('booking_type') == 'regular' ? 'selected' : '' }}>Regular (Harian)</option>
-                                <option value="member" {{ old('booking_type') == 'member' ? 'selected' : '' }}>Member (Bulanan)</option>
+                                <!-- <option value="member" {{ old('booking_type') == 'member' ? 'selected' : '' }}>Member (Bulanan)</option> -->
                             </select>
                             @error('booking_type')
                                 <div class="invalid-feedback">{{ $message }}</div>
