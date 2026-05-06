@@ -129,6 +129,16 @@
                         </div>
                         
                         <div class="col-md-6">
+                            <label class="form-label">Jumlah Sesi <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control @error('monthly_limit') is-invalid @enderror" 
+                                   name="monthly_limit" value="{{ old('monthly_limit', 4) }}" min="1" max="12" required>
+                            <small class="text-muted">Default 4 sesi per periode</small>
+                            @error('monthly_limit')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        
+                        <div class="col-md-6">
                             <label class="form-label">Tanggal Mulai <span class="text-danger">*</span></label>
                             <input type="date" class="form-control @error('start_date') is-invalid @enderror" 
                                    name="start_date" value="{{ old('start_date', date('Y-m-d')) }}" 
@@ -173,9 +183,9 @@
                     <i class="bi bi-lightbulb me-2"></i>
                     <strong>Cara Kerja:</strong>
                     <ul class="mb-0 mt-2">
-                        <li>Saat simpan, sistem langsung generate 4 sesi booking mulai dari <strong>Tanggal Mulai</strong></li>
+                        <li>Saat simpan, sistem langsung generate sesi booking sesuai jumlah sesi yang ditentukan mulai dari <strong>Tanggal Mulai</strong></li>
                         <li>Setiap hari sistem otomatis generate sesi baru jika kuota belum penuh</li>
-                        <li>Maksimal 4 sesi per bulan per member</li>
+                        <li>Default 4 sesi, bisa diubah sesuai kebutuhan</li>
                     </ul>
                 </div>
                 

@@ -37,6 +37,7 @@ class MemberScheduleController extends Controller
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'monthly_price' => 'required|numeric|min:0',
+            'monthly_limit' => 'nullable|integer|min:1|max:12',
             'start_date' => 'required|date|after_or_equal:today',
             'notes' => 'nullable|string'
         ]);
@@ -91,6 +92,7 @@ class MemberScheduleController extends Controller
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'monthly_price' => 'required|numeric|min:0',
+            'monthly_limit' => 'nullable|integer|min:1|max:12',
             'start_date' => 'required|date',
             'is_active' => 'boolean',
             'notes' => 'nullable|string'
@@ -104,34 +106,40 @@ class MemberScheduleController extends Controller
 
     public function destroy(MemberSchedule $memberSchedule)
     {
-        // Nonaktifkan jadwal dan batalkan booking yang belum berlangsung
-        $memberSchedule->update(['is_active' => false]);
-        
-        \App\Models\Booking::where('field_id', $memberSchedule->field_id)
+        // Batalkan booking pending yang belum berlangsung
+        Booking::where('field_id', $memberSchedule->field_id)
             ->where('customer_name', $memberSchedule->member_name)
             ->where('is_membership', true)
             ->where('booking_date', '>=', now())
             ->where('status', 'pending')
-            ->update(['status' => 'cancelled']);
+            ->delete();
+
+        // Hapus adjustment history
+        MemberSessionAdjustment::where('member_schedule_id', $memberSchedule->id)->delete();
+
+        // Hapus member schedule
+        $name = $memberSchedule->member_name;
+        $memberSchedule->delete();
 
         return redirect()->route('admin.member-schedules.index')
-            ->with('success', 'Jadwal member berhasil dinonaktifkan dan booking mendatang dibatalkan.');
+            ->with('success', "Membership {$name} berhasil dihapus.");
     }
 
     public function generateNext30Days(MemberSchedule $memberSchedule)
     {
-        $remaining = $memberSchedule->getRemainingQuota();
+        $limit = $memberSchedule->monthly_limit ?? 4;
         
-        if ($remaining <= 0) {
-            return back()->with('error', 'Kuota member sudah habis (4/4 sesi terpakai).');
+        if (!$memberSchedule->canBookThisMonth()) {
+            return back()->with('error', "Kuota member sudah habis ({$limit}/{$limit} sesi terpakai).");
         }
         
         $from = now()->gt($memberSchedule->start_date) ? now() : $memberSchedule->start_date;
         $bookings = $memberSchedule->generateBookingsFor30Days($from);
         $generated = count($bookings);
+        $pending = $memberSchedule->getRemainingQuota();
         
         if ($generated > 0) {
-            return back()->with('success', "{$generated} sesi booking berhasil di-generate. Sisa kuota: " . ($remaining - $generated) . "/4");
+            return back()->with('success', "{$generated} sesi booking berhasil di-generate. Sesi pending: {$pending}/{$limit}");
         } else {
             return back()->with('info', 'Tidak ada sesi baru yang di-generate. Semua sesi sudah ada.');
         }
@@ -155,8 +163,9 @@ class MemberScheduleController extends Controller
             ? Carbon::parse($lastBooking->booking_date)->addWeek()
             : Carbon::parse($memberSchedule->start_date);
 
-        if ($nextDate->dayOfWeek !== $memberSchedule->day_of_week) {
-            $nextDate->next($memberSchedule->day_of_week);
+        if ($nextDate->dayOfWeek != $memberSchedule->day_of_week) {
+            $dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            $nextDate->next($dayNames[$memberSchedule->day_of_week]);
         }
 
         $totalSessions = Booking::where('field_id', $memberSchedule->field_id)
@@ -168,9 +177,10 @@ class MemberScheduleController extends Controller
         $field = Field::find($memberSchedule->field_id);
         $duration = abs(Carbon::parse($memberSchedule->end_time)->diffInHours(Carbon::parse($memberSchedule->start_time)));
         if ($duration == 0) $duration = 1;
+        $limit = $memberSchedule->monthly_limit ?? 4;
         $pricePerSession = $field
             ? $field->getPriceForDate($nextDate->format('Y-m-d')) * $duration
-            : $memberSchedule->monthly_price / 4;
+            : $memberSchedule->monthly_price / $limit;
 
         $booking = Booking::create([
             'field_id' => $memberSchedule->field_id,

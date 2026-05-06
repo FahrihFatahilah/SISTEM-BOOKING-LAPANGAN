@@ -45,7 +45,10 @@ class FieldController extends Controller
             'weekend_price_per_hour' => 'nullable|numeric|min:0',
         ]);
 
-        Field::create($request->all());
+        $data = $request->all();
+        $data['weekend_price_per_hour'] = $request->filled('weekend_price_per_hour') ? $request->weekend_price_per_hour : null;
+
+        Field::create($data);
 
         return redirect()->route('admin.fields.index')
             ->with('success', 'Lapangan berhasil ditambahkan.');
@@ -93,7 +96,10 @@ class FieldController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        $field->update($request->all());
+        $data = $request->all();
+        $data['weekend_price_per_hour'] = $request->filled('weekend_price_per_hour') ? $request->weekend_price_per_hour : null;
+
+        $field->update($data);
 
         return redirect()->route('admin.fields.index')
             ->with('success', 'Lapangan berhasil diupdate.');

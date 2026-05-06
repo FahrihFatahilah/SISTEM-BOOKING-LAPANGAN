@@ -96,19 +96,19 @@
             </div>
             <div class="card-body">
                 @php
-                    $remaining = $memberSchedule->getRemainingQuota();
-                    $used = 4 - $remaining;
+                    $limit = $memberSchedule->monthly_limit ?? 4;
+                    $pending = $memberSchedule->getRemainingQuota();
                     $endDate = $memberSchedule->end_date;
                 @endphp
                 <div class="d-flex justify-content-between mb-1">
                     <small class="fw-semibold">{{ $memberSchedule->start_date->format('d F Y') }} - {{ $endDate->format('d F Y') }}</small>
-                    <small class="{{ $remaining > 1 ? 'text-success' : ($remaining >= 1 ? 'text-warning' : 'text-danger') }}">{{ $used }}/4 sesi</small>
+                    <small class="{{ $pending > 1 ? 'text-success' : ($pending >= 1 ? 'text-warning' : 'text-danger') }}">{{ $pending }}/{{ $limit }} sesi</small>
                 </div>
                 <div class="progress mb-2" style="height: 10px;">
-                    <div class="progress-bar {{ $remaining > 1 ? 'bg-success' : ($remaining >= 1 ? 'bg-warning' : 'bg-danger') }}"
-                         style="width: {{ ($used/4)*100 }}%"></div>
+                    <div class="progress-bar {{ $pending > 1 ? 'bg-success' : ($pending >= 1 ? 'bg-warning' : 'bg-danger') }}"
+                         style="width: {{ ($pending/$limit)*100 }}%"></div>
                 </div>
-                <small class="text-muted">Sisa {{ $remaining }} sesi &bull; Rp {{ number_format($memberSchedule->monthly_price / 4, 0, ',', '.') }}/sesi</small>
+                <small class="text-muted">{{ $pending }} sesi tersisa &bull; Rp {{ number_format($memberSchedule->monthly_price / $limit, 0, ',', '.') }}/sesi</small>
             </div>
         </div>
 
@@ -142,8 +142,8 @@
                 <div class="alert alert-info mb-0">
                     <i class="bi bi-info-circle me-2"></i>
                     <small><strong>Sistem Kuota:</strong><br>
-                    • Maks 4 sesi per bulan kalender<br>
-                    • Kuota reset setiap awal bulan<br>
+                    • Maks {{ $limit }} sesi per periode<br>
+                    • Kuota bisa diubah di halaman edit<br>
                     • Generate otomatis saat halaman member dibuka</small>
                 </div>
             </div>

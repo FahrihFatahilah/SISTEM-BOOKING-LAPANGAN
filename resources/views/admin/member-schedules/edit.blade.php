@@ -130,6 +130,16 @@
                         </div>
                         
                         <div class="col-md-6">
+                            <label class="form-label">Jumlah Sesi <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control @error('monthly_limit') is-invalid @enderror" 
+                                   name="monthly_limit" value="{{ old('monthly_limit', $memberSchedule->monthly_limit ?? 4) }}" min="1" max="12" required>
+                            <small class="text-muted">Default 4 sesi per periode</small>
+                            @error('monthly_limit')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        
+                        <div class="col-md-6">
                             <label class="form-label">Tanggal Mulai <span class="text-danger">*</span></label>
                             <input type="date" class="form-control @error('start_date') is-invalid @enderror" 
                                    name="start_date" value="{{ old('start_date', $memberSchedule->start_date->format('Y-m-d')) }}" required>
