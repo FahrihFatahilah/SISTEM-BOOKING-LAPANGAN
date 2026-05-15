@@ -55,12 +55,13 @@ class ProductController extends Controller
             'purchase_price' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
             'warehouse_stock' => 'required|integer|min:0',
+            'display_stock' => 'required|integer|min:0',
             'min_stock' => 'required|integer|min:0',
             'branch_id' => 'required|exists:branches,id',
             'description' => 'nullable',
         ]);
 
-        $validated['stock'] = $validated['warehouse_stock'] + $product->display_stock;
+        $validated['stock'] = $validated['warehouse_stock'] + $validated['display_stock'];
 
         $product->update($validated);
         return redirect()->route('admin.products.index')->with('success', 'Produk berhasil diupdate');
