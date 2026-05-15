@@ -39,7 +39,7 @@
                             <input type="number" name="warehouse_stock" class="form-control @error('warehouse_stock') is-invalid @enderror" value="{{ old('warehouse_stock', $product->warehouse_stock) }}" required>
                             @error('warehouse_stock')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="mb-3">
+                         <div class="mb-3">
                             <label>Stok Display</label>
                             <input type="number" name="display_stock" class="form-control @error('display_stock') is-invalid @enderror" value="{{ old('display_stock', $product->display_stock) }}" required>
                             @error('display_stock')<div class="invalid-feedback">{{ $message }}</div>@enderror

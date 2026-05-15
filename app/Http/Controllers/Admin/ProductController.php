@@ -47,7 +47,7 @@ class ProductController extends Controller
         return view('admin.products.edit', compact('product', 'branches'));
     }
 
-    public function update(Request $request, Product $product)
+  public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
             'code' => 'required|unique:products,code,' . $product->id,
