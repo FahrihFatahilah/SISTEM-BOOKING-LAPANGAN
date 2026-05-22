@@ -7,8 +7,6 @@ services:
       dockerfile: Dockerfile
     container_name: booking-lapangan-app
     restart: unless-stopped
-    ports:
-      - "9666:80"
     volumes:
       - ./storage:/var/www/storage
       - ./public/storage:/var/www/public/storage
@@ -16,7 +14,7 @@ services:
       - APP_NAME=Booking Lapangan
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_URL=http://localhost:9666
+      - APP_URL=https://booking.dev-abe.web.id
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -28,8 +26,17 @@ services:
       - QUEUE_CONNECTION=database
     depends_on:
       - mysql
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.booking.rule=Host(`booking.dev-abe.web.id`)"
+      - "traefik.http.routers.booking.entrypoints=websecure"
+      - "traefik.http.routers.booking.tls=true"
+      - "traefik.http.routers.booking.tls.certresolver=letsencrypt"
+      - "traefik.http.services.booking.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik_net"
     networks:
       - booking-network
+      - traefik_net
 
   mysql:
     image: mysql:8.0
@@ -51,6 +58,8 @@ services:
 networks:
   booking-network:
     driver: bridge
+  traefik_net:
+    external: true
 
 volumes:
   mysql_data:
