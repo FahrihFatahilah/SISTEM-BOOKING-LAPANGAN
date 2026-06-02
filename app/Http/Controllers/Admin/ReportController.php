@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\Branch;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -168,6 +169,48 @@ class ReportController extends Controller
         $branches = $user->isOwner() ? Branch::all() : collect([$user->branch]);
 
         return view('admin.reports.revenue-report', compact('bookingRevenues', 'salesRevenues', 'branches', 'request'));
+    }
+
+    public function productSalesReport(Request $request)
+    {
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'branch_id' => 'nullable|exists:branches,id',
+        ]);
+
+        $user = auth()->user();
+
+        $query = SaleItem::with('product')
+            ->whereHas('sale', function ($q) use ($request, $user) {
+                $q->whereBetween('created_at', [
+                    Carbon::parse($request->start_date)->startOfDay(),
+                    Carbon::parse($request->end_date)->endOfDay(),
+                ]);
+
+                if (!$user->isOwner()) {
+                    $q->where('branch_id', $user->branch_id);
+                }
+
+                if ($request->filled('branch_id')) {
+                    $q->where('branch_id', $request->branch_id);
+                }
+            });
+
+        $productSales = $query->selectRaw('product_id, product_name, SUM(quantity) as total_qty, SUM(subtotal) as total_revenue')
+            ->groupBy('product_id', 'product_name')
+            ->orderByDesc('total_qty')
+            ->get();
+
+        $summary = [
+            'total_items_sold' => $productSales->sum('total_qty'),
+            'total_revenue' => $productSales->sum('total_revenue'),
+            'total_products' => $productSales->count(),
+        ];
+
+        $branches = $user->isOwner() ? Branch::all() : collect([$user->branch]);
+
+        return view('admin.reports.product-sales-report', compact('productSales', 'summary', 'branches', 'request'));
     }
 
     public function exportBookingPdf(Request $request)
