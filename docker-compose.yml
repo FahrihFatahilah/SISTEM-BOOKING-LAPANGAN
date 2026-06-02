@@ -8,6 +8,7 @@ services:
     container_name: booking-lapangan-app
     restart: unless-stopped
     volumes:
+      - ./.env:/var/www/.env
       - booking-storage:/var/www/storage
       - booking-public-storage:/var/www/public/storage
     environment:
@@ -42,13 +43,5 @@ networks:
 volumes:
   booking-storage:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /data/booking-lapangan/storage
   booking-public-storage:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /data/booking-lapangan/public-storage
