@@ -24,8 +24,6 @@ services:
       - SESSION_DRIVER=file
       - CACHE_STORE=file
       - QUEUE_CONNECTION=database
-    depends_on:
-      - mysql
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.booking.rule=Host(`booking.ffatahilah.my.id`)"
@@ -42,5 +40,4 @@ networks:
     external: true
 
 volumes:
-  mysql_data:
   booking-storage:
