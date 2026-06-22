@@ -17,7 +17,7 @@
             <div class="card-body text-white">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title text-white-50 mb-1">Booking Bulan Ini</h6>
+                        <h6 class="card-title text-black-50 mb-1">Booking Bulan Ini</h6>
                         <h3 class="mb-0 fw-bold">{{ \App\Models\Booking::whereMonth('booking_date', now()->month)->count() }}</h3>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-circle p-3">
@@ -33,7 +33,7 @@
             <div class="card-body text-white">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title text-white-50 mb-1">Pendapatan Booking</h6>
+                        <h6 class="card-title text-black-50 mb-1">Pendapatan Booking</h6>
                         <h3 class="mb-0 fw-bold">Rp {{ number_format(\App\Models\Booking::whereMonth('booking_date', now()->month)->whereIn('status', ['pending', 'ongoing', 'completed'])->sum('total_price'), 0, ',', '.') }}</h3>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-circle p-3">
@@ -49,7 +49,7 @@
             <div class="card-body text-white">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title text-white-50 mb-1">Rata-rata per Hari</h6>
+                        <h6 class="card-title text-black-50 mb-1">Rata-rata per Hari</h6>
                         <h3 class="mb-0 fw-bold">{{ number_format(\App\Models\Booking::whereMonth('booking_date', now()->month)->count() / now()->day, 1) }}</h3>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-circle p-3">
@@ -65,7 +65,7 @@
             <div class="card-body text-white">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title text-white-50 mb-1">Tingkat Penyelesaian</h6>
+                        <h6 class="card-title text-black-50 mb-1">Tingkat Penyelesaian</h6>
                         <h3 class="mb-0 fw-bold">
                             @php
                                 $total = \App\Models\Booking::whereMonth('booking_date', now()->month)->count();
